@@ -60,10 +60,14 @@ void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
         return;
     }
 
-    const float fx = 554.254691191187;
-    const float fy = 554.254691191187;
-    const float cx = 320.5;
-    const float cy = 240.5;
+    // const float fx = 554.254691191187;
+    // const float fy = 554.254691191187;
+    // const float cx = 320.5;
+    // const float cy = 240.5;
+    const float fx = 180;
+    const float fy = 180;
+    const float cx = 320;
+    const float cy = 180;
 
     tf::StampedTransform transform;
 
