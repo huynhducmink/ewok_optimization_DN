@@ -60,11 +60,7 @@ void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
         return;
     }
 
-    // const float fx = 554.254691191187;
-    // const float fy = 554.254691191187;
-    // const float cx = 320.5;
-    // const float cy = 240.5;
-    const float fx = 180;
+    const float fx = 180; 
     const float fy = 180;
     const float cx = 320;
     const float cy = 180;
@@ -73,7 +69,6 @@ void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
 //HM
     try{
-        //listener->lookupTransform("/map", "/camera_link", msg->header.stamp, transform); 
         listener->lookupTransform("/map", "/camera_link", msg->header.stamp, transform); //PX4
     }
     catch (tf::TransformException &ex) {
@@ -87,7 +82,7 @@ void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
     Eigen::Affine3f T_w_c = dT_w_c.cast<float>();
 
-    std::cout << "T_w_c = " << T_w_c.matrix() << std::endl;
+    //std::cout << "T_w_c = " << T_w_c.matrix() << std::endl;
 
     float * data = (float *) cv_ptr->image.data;
 
@@ -236,7 +231,8 @@ int main(int argc, char **argv) {
     edrb.reset(new ewok::EuclideanDistanceRingBuffer<POW>(resolution, 1.0));
 
     double distance_threshold_;
-    pnh.param("distance_threshold", distance_threshold_, 0.5);
+    //pnh.param("distance_threshold", distance_threshold_, 0.5);
+    nh.getParam("/spline_optimization_example/distance_to_object",distance_threshold_);
     
     ROS_INFO("Started spline_optimization_example");
 
@@ -248,8 +244,8 @@ int main(int argc, char **argv) {
 //HM
     // congtranv
     //ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 50, currentPoseCallback);
-    ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/gazebo_groundtruth_posestamped", 50, currentPoseCallback);
-    //ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/vio_odo_posestamped", 50, currentPoseCallback);
+    //ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/gazebo_groundtruth_posestamped", 50, currentPoseCallback);
+    ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/vio_odo_posestamped", 50, currentPoseCallback);
     ros::Publisher point_pub = nh.advertise<geometry_msgs::Point>("optimization_point", 1);
     nh.getParam("/spline_optimization_example/number_of_target", target_num);
     nh.getParam("/spline_optimization_example/x_pos", x_target);
@@ -277,9 +273,12 @@ int main(int argc, char **argv) {
 
     global_traj_pub.publish(traj_marker);
 
+    std::cout << "Debug 1" << std::endl;
     // Set up spline optimization
     //HM tang tu 15 len 40
-    const int num_points = 15;
+    //const int num_points = 15;
+    int num_points;
+    nh.getParam("/spline_optimization_example/number_opt_points",num_points);
     const double dt = 0.5;
 
     Eigen::Vector3d start_point(1, 0, 3), end_point(0, 0, 3);
@@ -295,8 +294,8 @@ int main(int argc, char **argv) {
     spline_opt.setLimits(limits);
 
 
-    double tc = spline_opt.getClosestTrajectoryTime(Eigen::Vector3d(-3, -5, 1), 2.0);
-    ROS_INFO_STREAM("Closest time: " << tc);
+    //double tc = spline_opt.getClosestTrajectoryTime(Eigen::Vector3d(-3, -5, 1), 2.0);
+    //ROS_INFO_STREAM("Closest time: " << tc);
 
     ROS_INFO("Finished setting up data");
 
@@ -311,10 +310,10 @@ int main(int argc, char **argv) {
     ewok::EuclideanDistanceRingBuffer<POW> rrb(0.1, 1.0);
     while(ros::ok() && !start_reached)
     {
-        //HM doi tu 0.1 sang 0.3 error
-        start_reached = checkPosition(0.3, current_pose, targetTransfer(vec[0].x(), vec[0].y(), vec[0].z()));
+        start_reached = checkPosition(0.1, current_pose, targetTransfer(vec[0].x(), vec[0].y(), vec[0].z()));
         std::cout << "\n" << targetTransfer(vec[0].x(), vec[0].y(), vec[0].z()).pose.position.x << ", " << targetTransfer(vec[0].x(), vec[0].y(), vec[0].z()).pose.position.y << ", " << targetTransfer(vec[0].x(), vec[0].y(), vec[0].z()).pose.position.z << "\n";
         std::cout << current_pose.pose.position.x << ", " << current_pose.pose.position.y << ", " << current_pose.pose.position.z << "\n";
+        std::cout << ("Checking position") << std::endl;
         ros::spinOnce();
     }
     while (ros::ok() && current_time < traj->duration()) {

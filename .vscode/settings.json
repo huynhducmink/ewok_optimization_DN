@@ -1,8 +1,0 @@
-{
-    "python.autoComplete.extraPaths": [
-        "/mnt/sda1/DuyNam_ws/devel/lib/python3/dist-packages",
-        "/mnt/sda1/mavros_control_ws/devel/lib/python3/dist-packages",
-        "/mnt/sda1/catkin_ws/devel/lib/python3/dist-packages",
-        "/opt/ros/noetic/lib/python3/dist-packages"
-    ]
-}

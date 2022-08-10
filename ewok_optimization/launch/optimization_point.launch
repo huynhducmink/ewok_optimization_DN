@@ -1,21 +1,49 @@
 <launch>
 	<node name="spline_optimization_example" pkg="ewok_optimization" type="spline_optimization_example3" output="screen">
- 		<!--<rosparam param="x_pos">[0.5, 15.0, 0.5]</rosparam> 
-		<rosparam param="y_pos">[0.0, 0.0, 0.0]</rosparam> 
-		<rosparam param="z_pos">[1.0, 1.0, 2.0]</rosparam>-->
 
+		<!-- No obstacle trajectory-->
 		<!--
-		<rosparam param="x_pos">[0.0, 5.0, 5.0, 10.0, 10.0]</rosparam> 
-		<rosparam param="y_pos">[0.0, 0.0, 5.0, 5.0, 10.0]</rosparam> 
-		<rosparam param="z_pos">[5, 5, 5, 8, 5, 8]</rosparam>
+		<rosparam param="x_pos">[0.0,  0.0,  0.0,  5.0,  8.0,  8.0,-15.0,-15.0,  0.0]</rosparam> 
+		<rosparam param="y_pos">[0.0,  0.0,  5.0,  5.0,  8.0,  8.0, 10.0, -5.0,  0.0]</rosparam> 
+		<rosparam param="z_pos">[5.0,  3.0,  3.0,  5.0,  5.0, 10.0, 12.0, 12.0, 10.0]</rosparam>
+		-->
+		<!-- Obstable trajectory-->
+		<!--
+		-->
+		<rosparam param="x_pos">[0.0,  4.0,  9.0, 10.0,  6.0,  0.0,  0.0]</rosparam> 
+		<rosparam param="y_pos">[0.0, -0.5, -4.5,  5.0,  8.0,  4.0,  0.0]</rosparam> 
+		<rosparam param="z_pos">[5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  6.0]</rosparam>
+
+		<!-- Obstable trajectory v2-->
+		<!--
+		<rosparam param="x_pos">[0.0,  4.0,  9.0,  9.5,  6.0,  0.0,  0.0]</rosparam> 
+		<rosparam param="y_pos">[0.0, -0.5, -4.5,  4.2,  8.0,  4.0,  0.0]</rosparam> 
+		<rosparam param="z_pos">[5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  6.0]</rosparam>
 		-->
 
-		<rosparam param="x_pos">[0.0, 0.0, 0.0, 5.0, 8.0, 8.0, -15.0, -15.0, 0.0]</rosparam> 
-		<rosparam param="y_pos">[0.0, 0.0, 5.0, 5.0, 8.0, 8.0, 10.0, -5.0, 0.0]</rosparam> 
-		<rosparam param="z_pos">[5.0, 3.0, 3.0, 5.0, 5.0, 10.0, 12.0, 12.0, 10.0]</rosparam>
+		<!-- Testing trajectory-->
+		<!--
+		<rosparam param="x_pos">[0.0, 8.0, 8.0,11.0, 5.0]</rosparam> 
+		<rosparam param="y_pos">[0.0, 0.0, 6.0, 0.0, -4.0]</rosparam> 
+		<rosparam param="z_pos">[5.0, 7.0, 4.0, 6.0, 5.0]</rosparam>
+		-->
+		<!--
+		<rosparam param="x_pos">[0.0, 2.0, 6.0]</rosparam> 
+		<rosparam param="y_pos">[0.0, 1.0,-4.0]</rosparam> 
+		<rosparam param="z_pos">[5.0, 5.0, 5.0]</rosparam>
+		-->
 
+		<!--
+		<rosparam param="x_pos">[0.0, 12.0]</rosparam> 
+		<rosparam param="y_pos">[0.0, 0.0]</rosparam> 
+		<rosparam param="z_pos">[5.0, 5.0]</rosparam>
+		-->
 
-		<param name="number_of_target" type="int" value="9"/>
+		<param name="number_of_target" type="int" value="7"/>
+
+		<param name="number_opt_points" type="int" value="7"/> 
+		<param name="distance_to_object" type="double" value="0.5"/> 
+
 	</node>
         <node type="rviz" name="rviz" pkg="rviz" args="-d $(find ewok_optimization)/rviz/optimization_example.rviz" />
 
