@@ -10,6 +10,7 @@
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
@@ -31,6 +32,7 @@
 // congtranv
 #include<geometry_msgs/Point.h>
 #include<geometry_msgs/PoseStamped.h>
+#include<geometry_msgs/PoseWithCovarianceStamped.h>
 
 const int POW = 6;       
 
@@ -46,6 +48,53 @@ ros::Publisher occ_marker_pub, updated_marker_pub, free_marker_pub, dist_marker_
 tf::TransformListener * listener;
 
 //Depth Image Processing
+
+
+geometry_msgs::Point last_ctrl_point;
+int target_num;
+std::vector<double> x_target;
+std::vector<double> y_target; 
+std::vector<double> z_target;
+geometry_msgs::PoseStamped current_pose;
+bool start_reached = false;
+void currentPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    current_pose = *msg;
+}
+void currentPoseCallbackPWCS(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+{
+    current_pose.header = msg->header;
+    current_pose.pose = msg->pose.pose;
+}
+geometry_msgs::PoseStamped targetTransfer(double x, double y, double z)
+{
+    geometry_msgs::PoseStamped target;
+    target.pose.position.x = x;
+    target.pose.position.y = y;
+    target.pose.position.z = z;
+    return target;
+}
+bool checkPosition(double error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target)
+{
+    double xt = target.pose.position.x;
+	double yt = target.pose.position.y;
+	double zt = target.pose.position.z;
+	double xc = current.pose.position.x;
+	double yc = current.pose.position.y;
+	double zc = current.pose.position.z;
+
+	if(((xt - error) < xc) && (xc < (xt + error)) 
+	&& ((yt - error) < yc) && (yc < (yt + error))
+	&& ((zt - error) < zc) && (zc < (zt + error)))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
     cv_bridge::CvImageConstPtr cv_ptr;
@@ -60,12 +109,19 @@ void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
         return;
     }
 
-    const float fx = 180; 
-    const float fy = 180;
-    const float cx = 320;
-    const float cy = 180;
+    const float fx = 240; 
+    const float fy = 240;
+    const float cx = 360;
+    const float cy = 240;
 
     tf::StampedTransform transform;
+
+ //Add custom transform from /map to /base_link
+     static tf::TransformBroadcaster br;
+     tf::Transform br_transform;
+     br_transform.setOrigin(tf::Vector3(current_pose.pose.position.x,current_pose.pose.position.y,current_pose.pose.position.z));
+     br_transform.setRotation(tf::Quaternion(current_pose.pose.orientation.x, current_pose.pose.orientation.y, current_pose.pose.orientation.z, current_pose.pose.orientation.w));
+     br.sendTransform(tf::StampedTransform(br_transform, ros::Time::now(),"/map","/base_link"));
 
 //HM
     try{
@@ -161,46 +217,6 @@ void depthImageCallback(const sensor_msgs::Image::ConstPtr& msg)
     dist_marker_pub.publish(m_dist); 
 }
 
-geometry_msgs::Point last_ctrl_point;
-int target_num;
-std::vector<double> x_target;
-std::vector<double> y_target; 
-std::vector<double> z_target;
-geometry_msgs::PoseStamped current_pose;
-bool start_reached = false;
-void currentPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
-{
-    current_pose = *msg;
-}
-geometry_msgs::PoseStamped targetTransfer(double x, double y, double z)
-{
-    geometry_msgs::PoseStamped target;
-    target.pose.position.x = x;
-    target.pose.position.y = y;
-    target.pose.position.z = z;
-    return target;
-}
-bool checkPosition(double error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target)
-{
-    double xt = target.pose.position.x;
-	double yt = target.pose.position.y;
-	double zt = target.pose.position.z;
-	double xc = current.pose.position.x;
-	double yc = current.pose.position.y;
-	double zc = current.pose.position.z;
-
-	if(((xt - error) < xc) && (xc < (xt + error)) 
-	&& ((yt - error) < yc) && (yc < (yt + error))
-	&& ((zt - error) < zc) && (zc < (zt + error)))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "spline_optimization_example");
@@ -220,7 +236,7 @@ int main(int argc, char **argv) {
 
 //HM
 //sub anh depth
-    depth_image_sub_.subscribe(nh, "/depth", 5);
+    depth_image_sub_.subscribe(nh, "/depth", 10);
 //doi thanh camera link da tao trong flightmare
     tf::MessageFilter<sensor_msgs::Image> tf_filter_(depth_image_sub_, *listener, "/camera_link", 5);  //camera_link
     
@@ -245,7 +261,8 @@ int main(int argc, char **argv) {
     // congtranv
     //ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 50, currentPoseCallback);
     //ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/gazebo_groundtruth_posestamped", 50, currentPoseCallback);
-    ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/vio_odo_posestamped", 50, currentPoseCallback);
+    //ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/vio_odo_posestamped", 50, currentPoseCallback);
+    ros::Subscriber current_pose_sub = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/msf_core/pose_after_update", 50, currentPoseCallbackPWCS);
     ros::Publisher point_pub = nh.advertise<geometry_msgs::Point>("optimization_point", 1);
     nh.getParam("/spline_optimization_example/number_of_target", target_num);
     nh.getParam("/spline_optimization_example/x_pos", x_target);
@@ -253,7 +270,7 @@ int main(int argc, char **argv) {
     nh.getParam("/spline_optimization_example/z_pos", z_target);
 
     // Set up global trajectory
-    const Eigen::Vector4d limits(0.7, 4, 0, 0); // ivsr velocity , acceleration, 0, 0   //A row-vector containing the elements {0.7, 4, 0, 0} 
+    const Eigen::Vector4d limits(0.5, 3, 0.2, 0); // ivsr velocity , acceleration, 0, 0   //A row-vector containing the elements {0.7, 4, 0, 0} 
 
     ewok::Polynomial3DOptimization<10> po(limits*0.8);//0.8 ??? limits
     //
@@ -279,7 +296,7 @@ int main(int argc, char **argv) {
     //const int num_points = 15;
     int num_points;
     nh.getParam("/spline_optimization_example/number_opt_points",num_points);
-    const double dt = 0.5;
+    const double dt = 0.4;
 
     Eigen::Vector3d start_point(1, 0, 3), end_point(0, 0, 3);
     ewok::UniformBSpline3DOptimization<6> spline_opt(traj, dt);
